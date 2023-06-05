@@ -33,47 +33,44 @@ $content = ($sContentType == "multipart/form-data" ? $_POST : json_decode(file_g
 
 // Required parameters: user
 if (! empty($_GET['user'])) {
+    if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
+      // the instance actor does not actually have a working inbox
+        response(405, [ 'error' => 'Instance actor rejects all inbox posts' ]);
+    } else {
+      // TODO: Verify signature
 
-  if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
-    // the instance actor does not actually have a working inbox
-    response(405, [ 'error' => 'Instance actor rejects all inbox posts' ]);
-  } else {
-    // TODO: Verify signature
+      // verify the Object matches our Actor URL... if not, this request was sent to the wrong inbox!
+      //if ($content['object'] === $phpActivityPub_root . 'actor.php?user=' . $_GET['user']) {
 
-    // verify the Object matches our Actor URL... if not, this request was sent to the wrong inbox!
-    //if ($content['object'] === $phpActivityPub_root . 'actor.php?user=' . $_GET['user']) {
+        // switch based on received activity type
+        if ($content['type'] === 'Follow') {
+            $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READWRITE);
+            query($db, 'INSERT OR IGNORE INTO sub(user, dest) VALUES(?, ?)', $_GET['user'], $content['actor']);
+            $db->close();
 
-      // switch based on received activity type
-      if ($content['type'] === 'Follow') {
-        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READWRITE);
-        query($db, 'INSERT OR IGNORE INTO sub(user, dest) VALUES(?, ?)', $_GET['user'], $content['actor']);
-        $db->close();
+          // create and send Accept reply
+            sendActivity($_GET['user'], $content['actor'], [
+            'type' => 'Accept',
+            'object' => $content['id']
+            ]);
 
-        // create and send Accept reply
-        sendActivity($_GET['user'], $content['actor'], [
-          'type' => 'Accept',
-          'object' => $content['id']
-        ]);
+            response(204);
+        } elseif ($content['type'] === 'Undo' && $content['object']['type'] === 'Follow') {
+            $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READWRITE);
+            query($db, 'DELETE FROM sub WHERE user=? AND dest=?', $_GET['user'], $content['object']['actor']);
+            $db->close();
 
-        response(204);
-      } else if ($content['type'] === 'Undo' && $content['object']['type'] === 'Follow') {
-        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READWRITE);
-        query($db, 'DELETE FROM sub WHERE user=? AND dest=?', $_GET['user'], $content['object']['actor']);
-        $db->close();
+          // Undo is unilateral and does not expect an Accept response
 
-        // Undo is unilateral and does not expect an Accept response
-
-        response(204);
-      } else {
-        response(405, [ 'error' => 'Unsupported request type ' . $content['type'] ]);
-      }
-    //} else {
-      //http_response_code(400);
-      //echo 'Wrong inbox';
-    //}
-  }
+            response(204);
+        } else {
+            response(405, [ 'error' => 'Unsupported request type ' . $content['type'] ]);
+        }
+      //} else {
+        //http_response_code(400);
+        //echo 'Wrong inbox';
+      //}
+    }
 } else {
-  response(400, [ 'error' => 'Username missing' ]);
+    response(400, [ 'error' => 'Username missing' ]);
 }
-
-?>

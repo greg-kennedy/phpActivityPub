@@ -15,31 +15,28 @@ include_once 'admin/functions.php';
 // Required parameters: user
 if (! empty($_GET['user'])) {
   // instance actor - always return an empty collection
-  if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
-    $following = [];
-  } else {
-
-    // TODO: Validate request signature
-
-    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
-    $result = query($db, 'SELECT user FROM acct WHERE user=?', $_GET['user']);
-    $db->close();
-
-    if (count($result) > 0) {
-      $following = [];
+    if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
+        $following = [];
     } else {
-      response(404, [ 'error' => 'Invalid user ' . $_GET['user'] . ' in following request' ]);
-    }
-  }
+      // TODO: Validate request signature
 
-  response(200, [
+        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+        $result = query($db, 'SELECT user FROM acct WHERE user=?', $_GET['user']);
+        $db->close();
+
+        if (count($result) > 0) {
+            $following = [];
+        } else {
+            response(404, [ 'error' => 'Invalid user ' . $_GET['user'] . ' in following request' ]);
+        }
+    }
+
+    response(200, [
     '@context' => 'https://www.w3.org/ns/activitystreams',
     'type' => 'Collection',
     'totalItems' => count($following),
     'items' => $following
-  ]);
+    ]);
 } else {
-  response(400, [ 'error' => 'User missing from following request' ]);
+    response(400, [ 'error' => 'User missing from following request' ]);
 }
-
-?>

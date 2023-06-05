@@ -16,15 +16,15 @@ $result = query($db, 'SELECT user FROM acct');
 $db->close();
 
 // put the instance actor at the top
-$result = array_merge( [ [ 'user' => $_SERVER['SERVER_NAME'] ] ], $result);
+$result = array_merge([ [ 'user' => $_SERVER['SERVER_NAME'] ] ], $result);
 
 foreach ($result as $info) {
-  echo '<tr><th><a href="https://', $_SERVER['SERVER_NAME'], '/.well-known/webfinger?resource=acct:', $info['user'], '@', $_SERVER['SERVER_NAME'], '">', $info['user'], '</a></th>';
-  echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'actor.php?user=', $info['user'], '">Actor Link</a></td>';
-  echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'inbox.php?user=', $info['user'], '">Inbox Link</a></td>';
-  echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'outbox.php?user=', $info['user'], '">Outbox Link</a></td>';
-  echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'followers.php?user=', $info['user'], '">Followers Link</a></td>';
-  echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'following.php?user=', $info['user'], '">Following Link</a></td></tr>';
+    echo '<tr><th><a href="https://', $_SERVER['SERVER_NAME'], '/.well-known/webfinger?resource=acct:', $info['user'], '@', $_SERVER['SERVER_NAME'], '">', $info['user'], '</a></th>';
+    echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'actor.php?user=', $info['user'], '">Actor Link</a></td>';
+    echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'inbox.php?user=', $info['user'], '">Inbox Link</a></td>';
+    echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'outbox.php?user=', $info['user'], '">Outbox Link</a></td>';
+    echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'followers.php?user=', $info['user'], '">Followers Link</a></td>';
+    echo '<td><a href="https://', $_SERVER['SERVER_NAME'], $_SERVER['REQUEST_URI'], 'following.php?user=', $info['user'], '">Following Link</a></td></tr>';
 }
 ?>
     </table>

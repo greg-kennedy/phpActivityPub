@@ -36,47 +36,46 @@
 include_once 'admin/functions.php';
 
 // check query parameters and extract userpart
-if (! empty($_GET['resource']) &&
-    preg_match('/^acct:(.+)@' . $_SERVER['SERVER_NAME'] . '$/i', $_GET['resource'], $matches)) {
-
-  if (strtolower($matches[1]) === $_SERVER['SERVER_NAME']) {
-    // request for the Instance Actor (domain.tld@domain.tld)
-    $entity = [
-      "subject" => "acct:" . $_SERVER['SERVER_NAME'] . '@' . $_SERVER['SERVER_NAME'],
-      "links" => [[
+if (
+    ! empty($_GET['resource']) &&
+    preg_match('/^acct:(.+)@' . $_SERVER['SERVER_NAME'] . '$/i', $_GET['resource'], $matches)
+) {
+    if (strtolower($matches[1]) === $_SERVER['SERVER_NAME']) {
+      // request for the Instance Actor (domain.tld@domain.tld)
+        $entity = [
+        "subject" => "acct:" . $_SERVER['SERVER_NAME'] . '@' . $_SERVER['SERVER_NAME'],
+        "links" => [[
          "rel" => 'self',
          "type" => 'application/activity+json',
          "href" => $phpActivityPub_root . 'actor.php?user=' . $_SERVER['SERVER_NAME']
-      ]]
-    ];
-    error_log('Webfinger for instance actor, returning.');
-    response(200, $entity);
-  } else {
-    // connect to db, look up user info (verify the actor exists)
-    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
-    $info = query($db, 'SELECT user FROM acct WHERE user=?', $matches[1]);
-    $db->close();
-
-    if ( count($info) == 1) {
-      // found the user!  give back the WebFinger response
-      $entity = [
-        "subject" => "acct:" . $info[0]['user'] . '@' . $_SERVER['SERVER_NAME'],
-        "links" => [[
-           "rel" => 'self',
-           "type" => 'application/activity+json',
-           "href" => $phpActivityPub_root . 'actor.php?user=' . $info[0]['user']
         ]]
-      ];
-      error_log('Webfinger for user ' . $info[0]['user'] . ', returning.');
-      response(200, $entity);
+        ];
+        error_log('Webfinger for instance actor, returning.');
+        response(200, $entity);
     } else {
-      // the request looked OK but the user was not found
-      response(404, [ 'error' => 'No account for ' . $matches[1] . '@', $_SERVER['SERVER_NAME'] ]);
+      // connect to db, look up user info (verify the actor exists)
+        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+        $info = query($db, 'SELECT user FROM acct WHERE user=?', $matches[1]);
+        $db->close();
+
+        if (count($info) == 1) {
+          // found the user!  give back the WebFinger response
+            $entity = [
+            "subject" => "acct:" . $info[0]['user'] . '@' . $_SERVER['SERVER_NAME'],
+            "links" => [[
+             "rel" => 'self',
+             "type" => 'application/activity+json',
+             "href" => $phpActivityPub_root . 'actor.php?user=' . $info[0]['user']
+            ]]
+            ];
+            error_log('Webfinger for user ' . $info[0]['user'] . ', returning.');
+            response(200, $entity);
+        } else {
+          // the request looked OK but the user was not found
+            response(404, [ 'error' => 'No account for ' . $matches[1] . '@', $_SERVER['SERVER_NAME'] ]);
+        }
     }
-  }
 } else {
   // Request didn't look like the right format or was for the wrong server
-  response(400, [ 'error' => 'Bad request. Please make sure "acct:USER@' . $_SERVER['SERVER_NAME'] . '" is what you are sending as the "resource" query parameter.' ]);
+    response(400, [ 'error' => 'Bad request. Please make sure "acct:USER@' . $_SERVER['SERVER_NAME'] . '" is what you are sending as the "resource" query parameter.' ]);
 }
-
-?>

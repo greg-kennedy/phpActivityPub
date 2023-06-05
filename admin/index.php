@@ -20,18 +20,18 @@ if (count($instance) == 0) {
   // Instance actor does not exist yet and needs to be set up.
 
   // Create the keypair
-  $res=openssl_pkey_new();
+    $res = openssl_pkey_new();
 
   // Get public key
-  $rsa_public =(openssl_pkey_get_details($res))['key'];
+    $rsa_public = (openssl_pkey_get_details($res))['key'];
 
   // Get private key
-  openssl_pkey_export($res, $rsa_private);
+    openssl_pkey_export($res, $rsa_private);
 
   // Put details back into the table.
-  query($db, 'INSERT INTO instance(rsa_public, rsa_private) VALUES (?, ?)', $rsa_public, $rsa_private);
+    query($db, 'INSERT INTO instance(rsa_public, rsa_private) VALUES (?, ?)', $rsa_public, $rsa_private);
 } else {
-  $rsa_public = $instance[0]['rsa_public'];
+    $rsa_public = $instance[0]['rsa_public'];
 }
 
 // Get any post-able actors (accounts)
@@ -51,8 +51,9 @@ $db->close();
     <table>
       <tr><th>User</th><th>Type</th><th>Post Key</th></tr>
 <?php
-foreach ($actors as $a)
-  echo '<tr><td>', $a['user'], '</td><td>', $a['type'], '</td><td>', $a['key'], "</td></tr>\n";
+foreach ($actors as $a) {
+    echo '<tr><td>', $a['user'], '</td><td>', $a['type'], '</td><td>', $a['key'], "</td></tr>\n";
+}
 ?>
     </table>
     <hr>

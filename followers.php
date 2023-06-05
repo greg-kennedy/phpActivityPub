@@ -15,34 +15,31 @@ include_once 'admin/functions.php';
 // Required parameters: user
 if (! empty($_GET['user'])) {
   // instance actor - always return an empty collection
-  if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
-    $followers = [];
-  } else {
-
-    // TODO: Validate request signature
-
-    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
-    $result = query($db, 'SELECT dest FROM sub WHERE user=?', $_GET['user']);
-    $db->close();
-
-    if (count($result) > 0) {
-      // push each activity into the orderedItems
-      foreach ($result as $r) {
-        $followers[] = $r['dest'];
-      }
+    if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
+        $followers = [];
     } else {
-      response(404, [ 'error' => 'Invalid user ' . $_GET['user'] . ' in followers request' ]);
-    }
-  }
+      // TODO: Validate request signature
 
-  response(200, [
+        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+        $result = query($db, 'SELECT dest FROM sub WHERE user=?', $_GET['user']);
+        $db->close();
+
+        if (count($result) > 0) {
+          // push each activity into the orderedItems
+            foreach ($result as $r) {
+                $followers[] = $r['dest'];
+            }
+        } else {
+            response(404, [ 'error' => 'Invalid user ' . $_GET['user'] . ' in followers request' ]);
+        }
+    }
+
+    response(200, [
     '@context' => 'https://www.w3.org/ns/activitystreams',
     'type' => 'Collection',
     'totalItems' => count($followers),
     'items' => $followers
-  ]);
+    ]);
 } else {
-  response(400, [ 'error' => 'User missing from followers request' ]);
+    response(400, [ 'error' => 'User missing from followers request' ]);
 }
-
-?>

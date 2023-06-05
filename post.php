@@ -27,47 +27,48 @@ $content = ($sContentType == "multipart/form-data" ? $_POST : json_decode(file_g
 
 // Requirements to post
 if (! empty($_SERVER['HTTP_X_API_KEY']) && !empty($content)) {
+    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READWRITE);
+    $user = query($db, 'SELECT user FROM acct WHERE key=?', $_SERVER['HTTP_X_API_KEY']);
 
-  $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READWRITE);
-  $user = query($db, 'SELECT user FROM acct WHERE key=?', $_SERVER['HTTP_X_API_KEY']);
+    if (count($user) > 0) {
+      // This creates the Note, locally.
+        query(
+            $db,
+            'INSERT INTO post (user, content) VALUES (?, ?)',
+            $user[0]['user'],
+            json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        );
+        $id = $db->lastInsertRowId();
 
-  if (count($user) > 0) {
-    // This creates the Note, locally.
-    query($db, 'INSERT INTO post (user, content) VALUES (?, ?)',
-      $user[0]['user'], json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-    $id = $db->lastInsertRowId();
+      // create document we plan to send out
+        $activity = [
+        "id" => $phpActivityPub_root . 'activity.php?create=1&id=' . $id,
+        "type" => "Create",
+        "to" => 'https://www.w3.org/ns/activitystreams#Public',
+        "object" => array_merge([
+          "id" => $phpActivityPub_root . 'activity.php?id=' . $id,
+          "type" => 'Note',
+          "attributedTo" => $phpActivityPub_root . 'actor.php?user=' . $user[0]['user'],
+          "to" => 'https://www.w3.org/ns/activitystreams#Public'
+        ], $content)
+        ];
 
-    // create document we plan to send out
-    $activity = [
-      "id" => $phpActivityPub_root . 'activity.php?create=1&id=' . $id,
-      "type" => "Create",
-      "to" => 'https://www.w3.org/ns/activitystreams#Public',
-      "object" => array_merge([
-        "id" => $phpActivityPub_root . 'activity.php?id=' . $id,
-        "type" => 'Note',
-        "attributedTo" => $phpActivityPub_root . 'actor.php?user=' . $user[0]['user'],
-        "to" => 'https://www.w3.org/ns/activitystreams#Public'
-      ], $content)
-    ];
+      // Now, for every follower, send the Create activity to them.
+        $sub_result = query($db, 'SELECT dest FROM sub WHERE user=?', $user[0]['user']);
 
-    // Now, for every follower, send the Create activity to them.
-    $sub_result = query($db, 'SELECT dest FROM sub WHERE user=?', $user[0]['user']);
+        foreach ($sub_result as $sub_info) {
+          // compose and send a Create -> Note activity
+            error_log("Sending to " . $sub_info['dest']);
+            sendActivity($user[0]['user'], $sub_info['dest'], $activity);
+        }
 
-    foreach ($sub_result as $sub_info) {
-      // compose and send a Create -> Note activity
-      error_log("Sending to " . $sub_info['dest']);
-      sendActivity($user[0]['user'], $sub_info['dest'], $activity);
+        error_log('Received post, forwarded to recipients');
+        response(204);
+    } else {
+        error_log('Received post but key was invalid');
+        response(401, [ 'message' => 'Invalid key' ]);
     }
-
-    error_log('Received post, forwarded to recipients');
-    response(204);
-  } else {
-    error_log('Received post but key was invalid');
-    response(401, [ 'message' => 'Invalid key' ]);
-  }
 } else {
-  error_log('Received post but no key or content');
-  response(400, [ 'message' => 'Key or content missing' ]);
+    error_log('Received post but no key or content');
+    response(400, [ 'message' => 'Key or content missing' ]);
 }
-
-?>

@@ -50,41 +50,40 @@ include_once 'admin/functions.php';
 
 // check query parameters and extract userpart
 if (! empty($_GET['user'])) {
+    if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
+      // instance actor - always served without needing signature
+        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+        $info = query($db, 'SELECT rsa_public FROM instance');
+        $db->close();
 
-  if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
-    // instance actor - always served without needing signature
-    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
-    $info = query($db, 'SELECT rsa_public FROM instance');
-    $db->close();
-
-    if (count($info) > 0) {
-      // The instance actor has been set up properly.
-      $user = $_SERVER['SERVER_NAME'];
-      $type = 'Application';
-      $rsa_public = $info[0]['rsa_public'];
+        if (count($info) > 0) {
+          // The instance actor has been set up properly.
+            $user = $_SERVER['SERVER_NAME'];
+            $type = 'Application';
+            $rsa_public = $info[0]['rsa_public'];
+        } else {
+            response(500, [ 'error' => 'Instance actor has not been properly configured.' ]);
+        }
     } else {
-      response(500, [ 'error' => 'Instance actor has not been properly configured.' ]);
-    }
-  } else {
-    // TODO: Verify signature
+      // TODO: Verify signature
 
-    // connect to db, look up user info (verify the actor exists)
-    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
-    $info = query($db, 'SELECT user, type, rsa_public FROM acct WHERE user=?', $_GET['user']);
-    $db->close();
+      // connect to db, look up user info (verify the actor exists)
+        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+        $info = query($db, 'SELECT user, type, rsa_public FROM acct WHERE user=?', $_GET['user']);
+        $db->close();
 
-    if (count($info) > 0) {
-      // Found an account by this name.
-      $user = $info[0]['user'];
-      $type = $info[0]['type'];
-      $rsa_public = $info[0]['rsa_public'];
-    } else {
-      response(404, [ 'error' => 'No such user ' . $_GET['user'] . ' in Actor request' ]);
+        if (count($info) > 0) {
+          // Found an account by this name.
+            $user = $info[0]['user'];
+            $type = $info[0]['type'];
+            $rsa_public = $info[0]['rsa_public'];
+        } else {
+            response(404, [ 'error' => 'No such user ' . $_GET['user'] . ' in Actor request' ]);
+        }
     }
-  }
 
   // Build the complete Actor doc and send it out.
-  $actor = [
+    $actor = [
     "@context" => ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"],
     "id" => $phpActivityPub_root . 'actor.php?user=' . $user,
     "type" => $type,
@@ -101,11 +100,9 @@ if (! empty($_GET['user'])) {
       "owner" => $phpActivityPub_root . 'actor.php?user=' . $user,
       "publicKeyPem" => $rsa_public
     ]
-  ];
+    ];
 
-  response(200, $actor);
+    response(200, $actor);
 } else {
-  response(400, [ 'error' => 'User missing from Actor request' ]);
+    response(400, [ 'error' => 'User missing from Actor request' ]);
 }
-
-?>
