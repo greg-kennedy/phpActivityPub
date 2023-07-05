@@ -49,3 +49,8 @@ creates a Note (the default) with the text "Hello, world!"
 ```
 
 etc.
+
+# Nigel Whitfield updates, July 2023
+This fork provides an additional profile page within admin, allowing youto populate some of the information that will be displayed when people search for your actor.
+
+It additionally addresses a couple of minor issues relevant to my own installation, viz database creation, and an Apache re-write.
