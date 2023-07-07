@@ -18,4 +18,43 @@ of the text collapsed; this avoids cluttering up timelines with long event descr
 You can post an item like this - assuming it's saved in a file called event.json with curl from the command line:
 
     curl -X POST -H 'X-API-KEY: {actor POST key}' https://example.com/{install path}/post.php -d @event.json
-    
+
+## Automated posting
+We use this on BLUF.com, where our site has an event object, to which we have added method asActivityPub, which returns JSON formatted as
+above for an event with an image, or a simple note, for events without an image. Automating posts via the phpActivityPub is simple. You can see our bot in action as @events@bluf.com from your favourite Fediverse platform.
+
+Here's the code-snippets:
+
+        define('FEDI_URL','https://example.com//path/to/activityPub/post.php') ;
+        define('APIKEY','POST_KEY for your actor') ;
+        
+        while ($event = $events->fetch_assoc()) {
+		    $e = new \BLUF\Calendar\event($event['id']) ;
+		    fedi_post($e->asActivityPub()) ;
+
+		    sleep(rand(5, 20)) ; // avoid flooding
+	    }
+
+        function fedi_post($note)
+        {
+	        $curl = curl_init() ;
+
+	        curl_setopt_array($curl, [
+	          CURLOPT_URL => FEDI_URL,
+	          CURLOPT_RETURNTRANSFER => true,
+	          CURLOPT_ENCODING => "",
+	          CURLOPT_MAXREDIRS => 10,
+	          CURLOPT_TIMEOUT => 30,
+	          CURLOPT_POSTFIELDS => $note,
+	          CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+	          CURLOPT_HTTPHEADER => [
+	        	"Content-Type: application/json;charset=utf-8",
+	        	"X-API-KEY: " . APIKEY
+	          ],
+	        ]);
+
+	        $response = curl_exec($curl);
+	        $err = curl_error($curl);
+
+	        curl_close($curl);
+        }
