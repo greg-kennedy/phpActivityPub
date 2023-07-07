@@ -54,3 +54,7 @@ etc.
 This fork provides an additional profile page within admin, allowing youto populate some of the information that will be displayed when people search for your actor.
 
 It additionally addresses a couple of minor issues relevant to my own installation, viz database creation, and an Apache re-write.
+
+The latest commit creates a user page, which displays a barebones profile, inlcuding list of followers. You can use the profile admin 
+page to set the URL of this for each user you create. This solves the problem where, for example, a follower on a remote Mastodon instance can't see who's following your bot, because that's not stored locally. Mastodon displays the 'url' of the actor as link to
+the original profile.
