@@ -21,11 +21,19 @@ function parse_content($user, $activityPub)
 
 			$request = trim(preg_replace('#@events#', '', strip_tags($activityPub['object']['content']))) ;
 
+			preg_match('#://([^/]*)/#', $activityPub['actor'], $matches) ;
+			$actorName = '@' .  basename($activityPub['actor']) . '@' . $matches[1] ; // turn into @user@host.format
+
 			if (strtolower($request) == 'help') {
 				return([ 'type' => 'Note',
 						'to' => $activityPub['actor'],
 						'published' => strftime('%FT%TZ', time()),
 						'content' => "Send the name of a city to see what events we have listed in the next 30 days, eg Berlin",
+						'tag' => [[
+							'type' => 'Mention',
+							'href' => $activityPub['actor'],
+							'name' => $actorName
+							]],
 					]);
 			} else {
 				// look up info in the database and build a response
@@ -38,13 +46,18 @@ function parse_content($user, $activityPub)
 					return([ 'type' => 'Note',
 						'to' => $activityPub['actor'],
 						'published' => strftime('%FT%TZ', time()),
-						'content' => "Sorry, we have can't find any events matching your request. Try sending the name of a city"
+						'content' => "Sorry, we have can't find any events matching your request. Try sending the name of a city",
+						'tag' => [[
+						'type' => 'Mention',
+						'href' => $activityPub['actor'],
+						'name' => $actorName
+						]],
 					]);
 				} else {
 					$content = sprintf("<b>Here's your list of what's coming up in the next 30 days in %s<b><p><p>", $request) ;
 
 					while ($e = $events->fetch_assoc()) {
-						$when = strftime('%d %B %Y', strtotime($e['startdate'])) ;
+						$when = strftime('%A %d %B %Y', strtotime($e['startdate'])) ;
 						$content .= "<p>" . $e['title'] . " on " . $when ;
 					}
 
@@ -53,7 +66,12 @@ function parse_content($user, $activityPub)
 					return([ 'type' => 'Note',
 						'to' => $activityPub['actor'],
 						'published' => strftime('%FT%TZ', time()),
-						'content' => $content
+						'content' => $content,
+						'tag' => [[
+						'type' => 'Mention',
+						'href' => $activityPub['actor'],
+						'name' => $actorName
+						]],
 					]);
 				}
 			}

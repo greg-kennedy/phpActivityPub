@@ -82,7 +82,6 @@ if (! empty($_GET['user'])) {
                     'to' => $content['actor'],
                     'published' => strftime('%FT%TZ', time()),
                     'content' => "We didn't understand that, or couldn't find any results. Try sending the word HELP",
-                    //'inReplyTo' => $content['id']
                 ] ;
             }
 
@@ -103,7 +102,7 @@ if (! empty($_GET['user'])) {
                 //"id" => $response['id'],
                 'type' => 'Create',
                 'to' => $response['to'],
-                'object' => $response
+                'object' => $response,
             ]);
 
             response(200) ;
