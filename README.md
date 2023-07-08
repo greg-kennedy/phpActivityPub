@@ -51,10 +51,20 @@ creates a Note (the default) with the text "Hello, world!"
 etc.
 
 # Nigel Whitfield updates, July 2023
-This fork provides an additional profile page within admin, allowing youto populate some of the information that will be displayed when people search for your actor.
+This fork provides some additional functionality for bots. It additionally addresses a couple of minor issues relevant to my own installation, viz database creation, and an Apache re-write.
 
-It additionally addresses a couple of minor issues relevant to my own installation, viz database creation, and an Apache re-write.
+## Additonal features:
 
-The latest commit creates a user page, which displays a barebones profile, inlcuding list of followers. You can use the profile admin 
+### Admin profile page
+In [admin/profile.php](admin/profile.php) you can populate some of the information that will be displayed when people search for your actor.
+
+### User profile page
+Created by [user.php](user.php), which displays a barebones profile, inlcuding list of followers. You can use the profile admin 
 page to set the URL of this for each user you create. This solves the problem where, for example, a follower on a remote Mastodon instance can't see who's following your bot, because that's not stored locally. Mastodon displays the 'url' of the actor as link to
 the original profile.
+
+### Inbox detection of DMs
+The latest update to [inbox.php](inbox.php) detects when a DM is sent to one of your actors, and then hands the content off to
+a parse_content function in the include file [dm_parser.php](dm_parser.php). This is intended to keep some site specific code
+separate from the rest of the functionality. The example included allows followers to request a summary of events in a particular
+city by sending a DM to our bot with the name of the city.
