@@ -26,6 +26,8 @@
 
 include_once 'admin/functions.php';
 
+date_default_timezone_set('UTC') ;
+
 // Attempt to json_decode the body, in whatever form it arrives.
 //  (multipart/form-data is not supported and just returns an empty array)
 $sContentType = $_SERVER["CONTENT_TYPE"] ?? 'text/plain';
@@ -34,13 +36,14 @@ $content = ($sContentType == "multipart/form-data" ? $_POST : json_decode(file_g
 // Required parameters: user
 if (! empty($_GET['user'])) {
     if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
-      // the instance actor does not actually have a working inbox
+        // the instance actor does not actually have a working inbox
         response(405, [ 'error' => 'Instance actor rejects all inbox posts' ]);
     } else {
-      // TODO: Verify signature
+        // TODO: Verify signature
 
-      // verify the Object matches our Actor URL... if not, this request was sent to the wrong inbox!
-      //if ($content['object'] === $phpActivityPub_root . 'actor.php?user=' . $_GET['user']) {
+        // verify the Object matches our Actor URL... if not, this request was sent to the wrong inbox!
+        //if ($content['object'] === $phpActivityPub_root . 'actor.php?user=' . $_GET['user']) {
+        // debug
 
         // switch based on received activity type
         if ($content['type'] === 'Follow') {
@@ -48,7 +51,7 @@ if (! empty($_GET['user'])) {
             query($db, 'INSERT OR IGNORE INTO sub(user, dest) VALUES(?, ?)', $_GET['user'], $content['actor']);
             $db->close();
 
-          // create and send Accept reply
+            // create and send Accept reply
             sendActivity($_GET['user'], $content['actor'], [
             'type' => 'Accept',
             'object' => $content['id']
@@ -60,13 +63,54 @@ if (! empty($_GET['user'])) {
             query($db, 'DELETE FROM sub WHERE user=? AND dest=?', $_GET['user'], $content['object']['actor']);
             $db->close();
 
-          // Undo is unilateral and does not expect an Accept response
+            // Undo is unilateral and does not expect an Accept response
 
             response(204);
+        } elseif (($content['type'] == 'Create') &&  ! in_array('https://www.w3.org/ns/activitystreams#Public', $content['to'])) {
+            // Nigel Whitfield, July 2023
+            // this is a direct message
+            // we put all the code in our dm_parser library
+            // it will return either the Note we're sending back, or false
+
+            require_once 'dm_parser.php' ;
+
+            $response = parse_content($_GET['user'], $content) ;
+
+            if ($response === false) {
+                // send back a basic instruction or error message
+                $response = [ 'type' => 'Note',
+                    'to' => $content['actor'],
+                    'published' => strftime('%FT%TZ', time()),
+                    'content' => "We didn't understand that, or couldn't find any results. Try sending the word HELP",
+                    //'inReplyTo' => $content['id']
+                ] ;
+            }
+
+            $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READWRITE);
+
+            query(
+                $db,
+                'INSERT INTO post (user, content) VALUES (?, ?)',
+                $_GET['user'],
+                json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+            $id = $db->lastInsertRowId();
+            $db->close();
+
+            $response['id'] = $phpActivityPub_root . 'activity.php?create=1&id=' . $id ;
+
+            sendActivity($_GET['user'], $content['actor'], [
+                //"id" => $response['id'],
+                'type' => 'Create',
+                'to' => $response['to'],
+                'object' => $response
+            ]);
+
+            response(200) ;
         } else {
             response(405, [ 'error' => 'Unsupported request type ' . $content['type'] ]);
         }
-      //} else {
+        //} else {
         //http_response_code(400);
         //echo 'Wrong inbox';
       //}
