@@ -53,7 +53,7 @@ etc.
 # Nigel Whitfield updates, July 2023
 This fork provides some additional functionality for bots. It additionally addresses a couple of minor issues relevant to my own installation, viz database creation, and an Apache re-write.
 
-## Additonal features:
+Additonal features:
 
 ### Admin profile page
 In [admin/profile.php](admin/profile.php) you can populate some of the information that will be displayed when people search for your actor.
