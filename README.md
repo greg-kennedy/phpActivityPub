@@ -50,12 +50,14 @@ creates a Note (the default) with the text "Hello, world!"
 
 etc.
 
+See [POSTING.md](POSTING.md) for a more detailed example.
+
 # Nigel Whitfield updates, July 2023
-This fork provides some additional functionality for bots. It additionally addresses a couple of minor issues relevant to my own installation, viz database creation, and an Apache re-write.
+This fork provides some additional functionality for bots. It additionally addresses a couple of minor issues relevant to my own installation, viz database creation, and an Apache re-write. For details of rewrite rules, have a look at [Apache.md](Apache.md)
 
 Additonal features:
 
-### Admin profile page
+### Admin profile page
 In [admin/profile.php](admin/profile.php) you can populate some of the information that will be displayed when people search for your actor.
 
 ### User profile page
