@@ -50,59 +50,96 @@ include_once 'admin/functions.php';
 
 // check query parameters and extract userpart
 if (! empty($_GET['user'])) {
-    if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
-      // instance actor - always served without needing signature
-        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
-        $info = query($db, 'SELECT rsa_public FROM instance');
-        $db->close();
+  if (strtolower($_GET['user']) === $_SERVER['SERVER_NAME']) {
+    // instance actor - always served without needing signature
+    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+    $info = query($db, 'SELECT rsa_public FROM instance');
+    $db->close();
 
-        if (count($info) > 0) {
-          // The instance actor has been set up properly.
-            $user = $_SERVER['SERVER_NAME'];
-            $type = 'Application';
-            $rsa_public = $info[0]['rsa_public'];
-        } else {
-            response(500, [ 'error' => 'Instance actor has not been properly configured.' ]);
-        }
+    if (count($info) > 0) {
+      // The instance actor has been set up properly.
+      $user = $_SERVER['SERVER_NAME'];
+      $type = 'Application';
+      $rsa_public = $info[0]['rsa_public'];
     } else {
-      // TODO: Verify signature
-
-      // connect to db, look up user info (verify the actor exists)
-        $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
-        $info = query($db, 'SELECT user, type, rsa_public FROM acct WHERE user=?', $_GET['user']);
-        $db->close();
-
-        if (count($info) > 0) {
-          // Found an account by this name.
-            $user = $info[0]['user'];
-            $type = $info[0]['type'];
-            $rsa_public = $info[0]['rsa_public'];
-        } else {
-            response(404, [ 'error' => 'No such user ' . $_GET['user'] . ' in Actor request' ]);
-        }
+      response(500, [ 'error' => 'Instance actor has not been properly configured.' ]);
     }
+  } else {
+    // TODO: Verify signature
+
+    // connect to db, look up user info (verify the actor exists)
+    $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+    $info = query($db, 'SELECT user, type, rsa_public FROM acct WHERE user=?', $_GET['user']);
+    $db->close();
+
+    if (count($info) > 0) {
+      // Found an account by this name.
+      $user = $info[0]['user'];
+      $type = $info[0]['type'];
+      $rsa_public = $info[0]['rsa_public'];
+    } else {
+      response(404, [ 'error' => 'No such user ' . $_GET['user'] . ' in Actor request' ]);
+    }
+  }
 
   // Build the complete Actor doc and send it out.
-    $actor = [
-    "@context" => ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"],
-    "id" => $phpActivityPub_root . 'actor.php?user=' . $user,
-    "type" => $type,
+  $actor = [
+  "@context" => ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"],
+  "id" => $phpActivityPub_root . 'actor.php?user=' . $user,
+  "type" => $type,
 
-    "inbox" => $phpActivityPub_root . 'inbox.php?user=' . $user,
-    "outbox" => $phpActivityPub_root . 'outbox.php?user=' . $user,
+  "inbox" => $phpActivityPub_root . 'inbox.php?user=' . $user,
+  "outbox" => $phpActivityPub_root . 'outbox.php?user=' . $user,
 
-    "preferredUsername" => $user,
-    "followers" => $phpActivityPub_root . 'followers.php?user=' . $user,
-    "following" => $phpActivityPub_root . 'following.php?user=' . $user,
+  "preferredUsername" => $user,
 
-    "publicKey" => [
-      "id" => $phpActivityPub_root . 'actor.php?user=' . $user . '#main-key',
-      "owner" => $phpActivityPub_root . 'actor.php?user=' . $user,
-      "publicKeyPem" => $rsa_public
-    ]
-    ];
+  "followers" => $phpActivityPub_root . 'followers.php?user=' . $user,
+  "following" => $phpActivityPub_root . 'following.php?user=' . $user,
 
-    response(200, $actor);
+  "publicKey" => [
+  "id" => $phpActivityPub_root . 'actor.php?user=' . $user . '#main-key',
+  "owner" => $phpActivityPub_root . 'actor.php?user=' . $user,
+  "publicKeyPem" => $rsa_public
+  ]
+  ];
+
+  // NW: check for extended profile information
+  $db = new SQLite3("admin/db.sqlite3", SQLITE3_OPEN_READONLY);
+  $profile =  query($db, 'SELECT summary, url, name, icon, homepage FROM profile WHERE user=?', $_GET['user']);
+  $db->close() ;
+
+  if (count($profile) > 0) {
+    // there is profile info for this user
+    if (strlen($profile[0]['summary']) > 0) {
+      $actor['summary'] = $profile[0]['summary'] ;
+    }
+    if (strlen($profile[0]['url']) > 0) {
+      $actor['url'] = $profile[0]['url'] ;
+    }
+    if (strlen($profile[0]['name']) > 0) {
+      $actor['name'] = $profile[0]['name'] ;
+    }
+    if (strlen($profile[0]['icon']) > 0) {
+      $icon = [
+  "type" => "Image",
+  "mediaType" => "image/png",
+  "url" => $profile[0]['icon']
+  ] ;
+      $actor['icon'] = $icon ;
+    }
+    if (strlen($profile[0]['homepage']) > 0) {
+      $homepage = [
+  "type" => "PropertyValue",
+  "name" => "Homepage",
+  "value" => "<a href='" . $profile[0]['homepage'] . "' rel='me nofollow noopened noreferred' target='_blank'>" . preg_replace('#http(s)?://#', '', $profile[0]['homepage']) . "</a>"
+  ] ;
+
+      $actor['attachment'] = [ $homepage ] ;
+    }
+  }
+
+
+  response(200, $actor);
 } else {
-    response(400, [ 'error' => 'User missing from Actor request' ]);
+  response(400, [ 'error' => 'User missing from Actor request' ]);
 }
