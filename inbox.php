@@ -79,7 +79,7 @@ if (! empty($_GET['user'])) {
             if ($response === false) {
                 // send back a basic instruction or error message
                 $response = [ 'type' => 'Note',
-                    'to' => $content['actor'],
+                    'to' => [ $content['actor'] ],
                     'published' => strftime('%FT%TZ', time()),
                     'content' => "We didn't understand that, or couldn't find any results. Try sending the word HELP",
                 ] ;
@@ -101,7 +101,7 @@ if (! empty($_GET['user'])) {
             sendActivity($_GET['user'], $content['actor'], [
                 //"id" => $response['id'],
                 'type' => 'Create',
-                'to' => $response['to'],
+                'to' => [ $response['to']] ,
                 'object' => $response,
             ]);
 
