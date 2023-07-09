@@ -61,7 +61,7 @@ function parse_content($user, $activityPub)
 						$content .= "<p>" . $e['title'] . " on " . $when ;
 					}
 
-					$content .= sprintf("<p><i>See more details at <a href='https://bluf.com/e/%s'>bluf.com/e/%s</a>", strtolower($request), strtolower($request)) ;
+					$content .= sprintf("<p><i>See more details at <a href='https://bluf.com/e/%s'>bluf.com/e/%s</a></i>", urlencode(strtolower($request)), urlencode(strtolower($request))) ;
 
 					return([ 'type' => 'Note',
 						'to' => $activityPub['actor'],
